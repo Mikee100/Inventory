@@ -25,9 +25,9 @@ export default function ProductList() {
     async function fetchAll() {
       setLoading(true);
       const endpoints = [
-        { url: `http://https://inventory-backend-gpon.onrender.com/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
-        { url: `http://https://inventory-backend-gpon.onrender.com/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
-        { url: `http://https://inventory-backend-gpon.onrender.com/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
       ];
       let all = [];
       let total = 0;
@@ -74,7 +74,7 @@ export default function ProductList() {
       return;
     }
     try {
-      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/${endpoint}/${product._id}/deduct`, {
+      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${product._id}/deduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -123,7 +123,7 @@ export default function ProductList() {
   else return setNotification({ show: true, message: 'Unknown category', type: 'error' });
     const payload = { ...editForm };
     try {
-      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/${endpoint}/${editProduct._id}`, {
+      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${editProduct._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -192,7 +192,7 @@ export default function ProductList() {
               >
                 <div className="w-full flex justify-center mb-4">
                   <img
-                    src={`http://https://inventory-backend-gpon.onrender.com${product.image_url}`}
+                    src={`https://inventory-backend-gpon.onrender.com${product.image_url}`}
                     alt={product.name}
                     className="h-56 w-56 object-cover rounded-xl border-2 border-blue-100 group-hover:scale-105 transition-transform duration-300 bg-gray-50"
                     style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
