@@ -7,7 +7,7 @@ export default function ShoeLogs() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/sales/logs?productId=${id}`)
+    fetch(`http://https://inventory-backend-gpon.onrender.com/api/sales/logs?productId=${id}`)
       .then(res => res.json())
       .then(data => {
         setLogs(data);

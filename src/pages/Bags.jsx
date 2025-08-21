@@ -19,7 +19,7 @@ export default function Bags() {
   const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/bags')
+    fetch('http://https://inventory-backend-gpon.onrender.com/api/bags')
       .then(res => res.json())
       .then(result => {
         // If paginated response, use result.data
@@ -51,7 +51,7 @@ export default function Bags() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/bags/${bag._id}/deduct`, {
+      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/bags/${bag._id}/deduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -80,7 +80,7 @@ export default function Bags() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/bags/${bag._id}/add`, {
+      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/bags/${bag._id}/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -184,7 +184,7 @@ export default function Bags() {
             <form className="space-y-2" onSubmit={async e => {
               e.preventDefault();
               try {
-                const res = await fetch(`http://localhost:8000/api/bags/${editId}`, {
+                const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/bags/${editId}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(editForm),

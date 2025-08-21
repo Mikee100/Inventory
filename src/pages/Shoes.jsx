@@ -25,7 +25,7 @@ export default function Shoes() {
   const handleDeleteShoe = async (shoeId) => {
     if (!window.confirm('Are you sure you want to delete this shoe?')) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/shoes/${shoeId}`, {
+      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/shoes/${shoeId}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -76,7 +76,7 @@ export default function Shoes() {
       }
     }, [sizeInputRegion, sizeInputValue]);
   useEffect(() => {
-    fetch('http://localhost:8000/api/shoes')
+    fetch('http://https://inventory-backend-gpon.onrender.com/api/shoes')
       .then(res => res.json())
       .then(result => {
         // If paginated response, use result.data
@@ -100,7 +100,7 @@ export default function Shoes() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/shoes/${shoe._id}/deduct`, {
+      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/shoes/${shoe._id}/deduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -129,7 +129,7 @@ export default function Shoes() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/shoes/${shoe._id}/add`, {
+      const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/shoes/${shoe._id}/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -364,7 +364,7 @@ export default function Shoes() {
                 sizes: { ...convertedSizes }
               };
               try {
-                const res = await fetch(`http://localhost:8000/api/shoes/${editId}`, {
+                const res = await fetch(`http://https://inventory-backend-gpon.onrender.com/api/shoes/${editId}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(updatedForm),
