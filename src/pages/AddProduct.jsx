@@ -102,7 +102,7 @@ export default function AddProduct() {
         payload.sizes = convertedSizes;
       }
 
-      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}`, {
+      const res = await fetch(`http://localhost:8000/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

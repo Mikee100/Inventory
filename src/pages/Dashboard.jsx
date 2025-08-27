@@ -30,10 +30,10 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const shoesRes = await fetch('https://inventory-backend-gpon.onrender.com/api/shoes');
-      const bagsRes = await fetch('https://inventory-backend-gpon.onrender.com/api/bags');
-      const dressesRes = await fetch('https://inventory-backend-gpon.onrender.com/api/dresses');
-      let logsUrl = 'https://inventory-backend-gpon.onrender.com/api/sales/logs';
+      const shoesRes = await fetch('http://localhost:8000/api/shoes');
+      const bagsRes = await fetch('http://localhost:8000/api/bags');
+      const dressesRes = await fetch('http://localhost:8000/api/dresses');
+      let logsUrl = 'http://localhost:8000/api/sales/logs';
       if (startDate || endDate) {
         const params = [];
         if (startDate) params.push(`start=${startDate}`);

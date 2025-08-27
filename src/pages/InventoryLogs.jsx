@@ -8,7 +8,7 @@ export default function InventoryLogs() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://inventory-backend-gpon.onrender.com/api/sales/logs')
+    fetch('http://localhost:8000/api/sales/logs')
       .then(res => res.json())
       .then(data => {
         setLogs(data);
@@ -20,7 +20,7 @@ export default function InventoryLogs() {
 
   const fetchLogs = () => {
     setLoading(true);
-    let url = 'https://inventory-backend-gpon.onrender.com/api/sales/logs';
+    let url = 'http://localhost:8000/api/sales/logs';
     const params = [];
     if (startDate) params.push(`start=${startDate}`);
     if (endDate) params.push(`end=${endDate}`);

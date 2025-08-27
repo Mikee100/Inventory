@@ -84,7 +84,7 @@ export default function AddProductModal({ category, onClose }) {
         payload.ageGroup = form.ageGroup;
         payload.sizes = convertedSizes;
       }
-      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${category.toLowerCase()}`, {
+      const res = await fetch(`http://localhost:8000/api/${category.toLowerCase()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
