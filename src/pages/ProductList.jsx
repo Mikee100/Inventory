@@ -25,9 +25,9 @@ export default function ProductList() {
     async function fetchAll() {
       setLoading(true);
       const endpoints = [
-        { url: `http://localhost:8000/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
-        { url: `http://localhost:8000/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
-        { url: `http://localhost:8000/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
+        { url: `https://inventory-backend-gpon.onrender.com/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
       ];
       let all = [];
       let total = 0;
@@ -74,7 +74,7 @@ export default function ProductList() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:8000/api/${endpoint}/${product._id}/deduct`, {
+      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${product._id}/deduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -123,7 +123,7 @@ export default function ProductList() {
   else return setNotification({ show: true, message: 'Unknown category', type: 'error' });
     const payload = { ...editForm };
     try {
-      const res = await fetch(`http://localhost:8000/api/${endpoint}/${editProduct._id}`, {
+      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${editProduct._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

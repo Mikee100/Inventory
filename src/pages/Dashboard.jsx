@@ -17,8 +17,8 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const [statsRes, inventoryRes] = await Promise.all([
-          fetch("http://localhost:8000/api/dashboard/stats"),
-          fetch("http://localhost:8000/api/dashboard/inventory-status"),
+          fetch("https://inventory-backend-gpon.onrender.com/api/dashboard/stats"),
+          fetch("https://inventory-backend-gpon.onrender.com/api/dashboard/inventory-status"),
         ]);
 
         const [stats, inventory] = await Promise.all([

@@ -24,7 +24,7 @@ export default function Shoes() {
     if (!window.confirm("Are you sure you want to delete this shoe?")) return;
     try {
       const res = await fetch(
-        `http://localhost:8000/api/shoes/${shoeId}`,
+        `https://inventory-backend-gpon.onrender.com/api/shoes/${shoeId}`,
         {
           method: "DELETE",
         }
@@ -91,7 +91,7 @@ export default function Shoes() {
     }
   }, [sizeInputRegion, sizeInputValue]);
   useEffect(() => {
-    fetch("http://localhost:8000/api/shoes")
+    fetch("https://inventory-backend-gpon.onrender.com/api/shoes")
       .then((res) => res.json())
       .then((result) => {
         // If paginated response, use result.data
@@ -106,7 +106,7 @@ export default function Shoes() {
       });
   }, []);
   useEffect(() => {
-    fetch("http://localhost:8000/api/shoes/grouped")
+    fetch("https://inventory-backend-gpon.onrender.com/api/shoes/grouped")
       .then((res) => res.json())
       .then((data) => {
         setGroupedShoes(data);
@@ -126,7 +126,7 @@ export default function Shoes() {
     }
     try {
       const res = await fetch(
-        `http://localhost:8000/api/shoes/${shoe._id}/deduct`,
+        `https://inventory-backend-gpon.onrender.com/api/shoes/${shoe._id}/deduct`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -170,7 +170,7 @@ export default function Shoes() {
     }
     try {
       const res = await fetch(
-        `http://localhost:8000/api/shoes/${shoe._id}/add`,
+        `https://inventory-backend-gpon.onrender.com/api/shoes/${shoe._id}/add`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

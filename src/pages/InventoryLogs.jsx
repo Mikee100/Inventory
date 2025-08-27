@@ -18,7 +18,7 @@ export default function InventoryLogs() {
 
   const fetchLogs = () => {
     setLoading(true);
-    let url = 'http://localhost:8000/api/sales/logs';
+    let url = 'https://inventory-backend-gpon.onrender.com/api/sales/logs';
     const params = [];
     if (startDate) params.push(`start=${startDate}`);
     if (endDate) params.push(`end=${endDate}`);
