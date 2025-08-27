@@ -192,8 +192,7 @@ export default function ProductList() {
               >
                 <div className="w-full flex justify-center mb-4">
                   <img
-                    src={`http://localhost:8000${product.image_url}`}
-                    alt={product.name}
+                    src={product.image_url} alt={product.name}
                     className="h-56 w-56 object-cover rounded-xl border-2 border-blue-100 group-hover:scale-105 transition-transform duration-300 bg-gray-50"
                     style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
                   />
