@@ -1,435 +1,252 @@
-import React, { useEffect, useState } from 'react';
-import { CSVLink } from 'react-csv';
-import { FaBox, FaDollarSign, FaChartLine, FaExclamationTriangle } from 'react-icons/fa';
-import Notification from '../components/Notification';
-import { Bar, Line, Pie } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement,
-  LineElement,
-  ArcElement
-} from 'chart.js';
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement);
+import React, { useEffect, useState } from "react";
+import { ClipLoader } from "react-spinners";
+import Notification from "../components/Notification";
 
 export default function Dashboard() {
-  const [products, setProducts] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'info' });
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [filteredLogs, setFilteredLogs] = useState([]);
-  const [drillProduct, setDrillProduct] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
 
+  // Fetch dashboard data
   useEffect(() => {
-    async function fetchData() {
+    const fetchDashboardData = async () => {
       setLoading(true);
-      const shoesRes = await fetch('http://localhost:8000/api/shoes');
-      const bagsRes = await fetch('http://localhost:8000/api/bags');
-      const dressesRes = await fetch('http://localhost:8000/api/dresses');
-      let logsUrl = 'http://localhost:8000/api/sales/logs';
-      if (startDate || endDate) {
-        const params = [];
-        if (startDate) params.push(`start=${startDate}`);
-        if (endDate) params.push(`end=${endDate}`);
-        logsUrl += '?' + params.join('&');
+      try {
+        const [statsRes, inventoryRes] = await Promise.all([
+          fetch("http://localhost:8000/api/dashboard/stats"),
+          fetch("http://localhost:8000/api/dashboard/inventory-status"),
+        ]);
+
+        const [stats, inventory] = await Promise.all([
+          statsRes.json(),
+          inventoryRes.json(),
+        ]);
+
+        setStats(stats);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setNotification({
+          show: true,
+          message: "Failed to load dashboard data",
+          type: "error",
+        });
+      } finally {
+        setLoading(false);
       }
-      const logsRes = await fetch(logsUrl);
-      const shoes = shoesRes.ok ? await shoesRes.json() : [];
-      const bags = bagsRes.ok ? await bagsRes.json() : [];
-      const dresses = dressesRes.ok ? await dressesRes.json() : [];
-      const logs = logsRes.ok ? await logsRes.json() : [];
-      setProducts([...shoes, ...bags, ...dresses]);
-      setLogs(logs);
-      setFilteredLogs(logs);
-      setLoading(false);
-      // Low stock notification
-      const lowStock = [...shoes, ...bags, ...dresses].filter(p => p.stock <= 5);
-      if (lowStock.length > 0) {
-        setNotification({ show: true, message: `Low stock: ${lowStock.map(p => p.name + ' (' + p.stock + ')').join(', ')}`, type: 'warning' });
-      }
-    }
-    fetchData();
-  }, [startDate, endDate]);
+    };
 
-  // Back navigation for mobile
-  const handleBack = () => window.history.back();
-  // Chart Data Preparation from real data
-  // Sales Trends (group logs by date)
-  const salesByDate = {};
-  filteredLogs.forEach(log => {
-    const date = new Date(log.date).toISOString().slice(0, 10);
-    if (!salesByDate[date]) salesByDate[date] = { sales: 0, revenue: 0 };
-    if (log.type === 'add') {
-      salesByDate[date].sales += log.quantity;
-      salesByDate[date].revenue += log.total;
-    }
-  });
-  const salesData = Object.keys(salesByDate).map(date => ({ date, sales: salesByDate[date].sales, revenue: salesByDate[date].revenue }));
+    fetchDashboardData();
+  }, []);
 
-  // Moving averages (7-day)
-  function movingAverage(data, key, windowSize = 7) {
-    return data.map((d, i) => {
-      const start = Math.max(0, i - windowSize + 1);
-      const window = data.slice(start, i + 1);
-      const avg = window.reduce((sum, w) => sum + w[key], 0) / window.length;
-      return avg;
-    });
-  }
-  const salesMA = movingAverage(salesData, 'sales');
-  const revenueMA = movingAverage(salesData, 'revenue');
+  if (loading)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <ClipLoader color="#4F46E5" size={50} />
+          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+    
+  if (!stats)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center p-8 bg-red-50 rounded-lg max-w-md">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 className="text-lg font-medium text-red-800 mb-2">Failed to load dashboard</h3>
+          <p className="text-red-600">Please check your connection and try again.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
 
-  // Growth rates
-  function growthRate(data, key) {
-    if (data.length < 2) return 0;
-    const prev = data[data.length - 2][key];
-    const curr = data[data.length - 1][key];
-    return prev ? (((curr - prev) / prev) * 100).toFixed(2) : 0;
-  }
-  const salesGrowth = growthRate(salesData, 'sales');
-  const revenueGrowth = growthRate(salesData, 'revenue');
+  const {
+    summary,
+    salesByCategory,
+    salesTrend,
+    lowStockItems,
+    topSelling,
+    stockValueByCategory,
+  } = stats;
 
-  // Inventory turnover rate (total sales / avg inventory)
-  const totalSales = filteredLogs.filter(l => l.type === 'add').reduce((sum, l) => sum + l.quantity, 0);
-  const avgInventory = products.length ? (products.reduce((sum, p) => sum + p.stock, 0) / products.length) : 1;
-  const turnoverRate = avgInventory ? (totalSales / avgInventory).toFixed(2) : 0;
-
-  // Sell-through rate (total sales / (total sales + current stock))
-  const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-  const sellThroughRate = (totalSales / (totalSales + totalStock) * 100).toFixed(2);
-
-  // Stock Data
-  const stockData = products.map(p => ({ name: p.name, stock: p.stock, category: p.category || (p.gender ? 'Shoes' : p.size ? 'Dresses' : 'Bags') }));
-
-  // Top Products (by total sales in logs)
-  const productSales = {};
-  filteredLogs.forEach(log => {
-    if (!productSales[log.name]) productSales[log.name] = 0;
-    productSales[log.name] += log.quantity;
-  });
-  const topProducts = Object.entries(productSales)
-    .map(([name, sales]) => ({ name, sales }))
-    .sort((a, b) => b.sales - a.sales)
-    .slice(0, 5);
-
-  // Category Distribution
-  const categoryCount = {};
-  products.forEach(p => {
-    const cat = p.category || (p.gender ? 'Shoes' : p.size ? 'Dresses' : 'Bags');
-    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-  });
-  const categoryDistribution = Object.entries(categoryCount).map(([category, count]) => ({ category, count }));
-
-  // Low Stock
-  const lowStockProducts = stockData.filter(d => d.stock <= 5);
-
-  // Advanced Analytics
-  // Best Selling Day
-  const bestDay = salesData.reduce((max, d) => d.sales > max.sales ? d : max, { sales: 0 });
-  // Average Sales/Revenue
-  const avgSales = salesData.length ? (salesData.reduce((sum, d) => sum + d.sales, 0) / salesData.length).toFixed(2) : 0;
-  const avgRevenue = salesData.length ? (salesData.reduce((sum, d) => sum + d.revenue, 0) / salesData.length).toFixed(2) : 0;
-  // Most/Least Stocked Product
-  const mostStocked = stockData.reduce((max, p) => p.stock > max.stock ? p : max, { stock: -Infinity });
-  const leastStocked = stockData.reduce((min, p) => p.stock < min.stock ? p : min, { stock: Infinity });
-  // Sales by Category
-  const salesByCategory = {};
-  filteredLogs.forEach(log => {
-    const cat = log.category;
-    if (!salesByCategory[cat]) salesByCategory[cat] = 0;
-    if (log.type === 'add') salesByCategory[cat] += log.quantity;
-  });
-  const salesByCategoryData = {
-    labels: Object.keys(salesByCategory),
-    datasets: [
-      {
-        label: 'Sales by Category',
-        data: Object.values(salesByCategory),
-        backgroundColor: [
-          'rgba(59,130,246,0.6)',
-          'rgba(234,179,8,0.6)',
-          'rgba(16,185,129,0.6)'
-        ],
-        borderColor: [
-          'rgba(59,130,246,1)',
-          'rgba(234,179,8,1)',
-          'rgba(16,185,129,1)'
-        ],
-        borderWidth: 2,
-      },
-    ],
+  // Color palette for consistent styling
+  const colorMap = {
+    blue: { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-200", darkBg: "bg-blue-500" },
+    green: { bg: "bg-green-100", text: "text-green-800", border: "border-green-200", darkBg: "bg-green-500" },
+    purple: { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-200", darkBg: "bg-purple-500" },
+    yellow: { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-200", darkBg: "bg-yellow-500" },
+    pink: { bg: "bg-pink-100", text: "text-pink-800", border: "border-pink-200", darkBg: "bg-pink-500" },
+    indigo: { bg: "bg-indigo-100", text: "text-indigo-800", border: "border-indigo-200", darkBg: "bg-indigo-500" },
+    orange: { bg: "bg-orange-100", text: "text-orange-800", border: "border-orange-200", darkBg: "bg-orange-500" },
   };
 
-  const salesChartData = {
-    labels: salesData.map(d => d.date),
-    datasets: [
-      {
-        label: 'Sales',
-        data: salesData.map(d => d.sales),
-        backgroundColor: 'rgba(37,99,235,0.6)',
-        borderColor: 'rgba(37,99,235,1)',
-        borderWidth: 2,
-      },
-      {
-        label: 'Sales (7-day MA)',
-        data: salesMA,
-        backgroundColor: 'rgba(59,130,246,0.3)',
-        borderColor: 'rgba(59,130,246,0.7)',
-        borderWidth: 2,
-        type: 'line',
-        fill: false,
-      },
-    ],
-  };
-  const revenueChartData = {
-    labels: salesData.map(d => d.date),
-    datasets: [
-      {
-        label: 'Revenue',
-        data: salesData.map(d => d.revenue),
-        backgroundColor: 'rgba(16,185,129,0.6)',
-        borderColor: 'rgba(16,185,129,1)',
-        borderWidth: 2,
-      },
-      {
-        label: 'Revenue (7-day MA)',
-        data: revenueMA,
-        backgroundColor: 'rgba(234,179,8,0.3)',
-        borderColor: 'rgba(234,179,8,0.7)',
-        borderWidth: 2,
-        type: 'line',
-        fill: false,
-      },
-    ],
-  };
-  const categoryChartData = {
-    labels: categoryDistribution.map(d => d.category),
-    datasets: [
-      {
-        label: 'Category Distribution',
-        data: categoryDistribution.map(d => d.count),
-        backgroundColor: [
-          'rgba(59,130,246,0.6)',
-          'rgba(234,179,8,0.6)',
-          'rgba(16,185,129,0.6)'
-        ],
-        borderColor: [
-          'rgba(59,130,246,1)',
-          'rgba(234,179,8,1)',
-          'rgba(16,185,129,1)'
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
-  const lowStockChartData = {
-    labels: lowStockProducts.map(d => d.name),
-    datasets: [
-      {
-        label: 'Low Stock',
-        data: lowStockProducts.map(d => d.stock),
-        backgroundColor: 'rgba(239,68,68,0.6)',
-        borderColor: 'rgba(239,68,68,1)',
-        borderWidth: 2,
-      },
-    ],
-  };
-  const stockChartData = {
-    labels: stockData.map(d => d.name),
-    datasets: [
-      {
-        label: 'Stock',
-        data: stockData.map(d => d.stock),
-        backgroundColor: [
-          'rgba(16,185,129,0.6)',
-          'rgba(59,130,246,0.6)',
-          'rgba(234,179,8,0.6)'
-        ],
-        borderColor: [
-          'rgba(16,185,129,1)',
-          'rgba(59,130,246,1)',
-          'rgba(234,179,8,1)'
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
-  const topProductsChartData = {
-    labels: topProducts.map(d => d.name),
-    datasets: [
-      {
-        label: 'Top Products',
-        data: topProducts.map(d => d.sales),
-        backgroundColor: [
-          'rgba(59,130,246,0.6)',
-          'rgba(234,179,8,0.6)',
-          'rgba(16,185,129,0.6)'
-        ],
-        borderColor: [
-          'rgba(59,130,246,1)',
-          'rgba(234,179,8,1)',
-          'rgba(16,185,129,1)'
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
+  const statColors = [
+    colorMap.blue,
+    colorMap.green,
+    colorMap.purple,
+    colorMap.yellow,
+    colorMap.pink,
+    colorMap.indigo
+  ];
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      {/* Notification */}
       {notification.show && (
         <Notification
           message={notification.message}
           type={notification.type}
-          onClose={() => setNotification(n => ({ ...n, show: false }))}
+          onClose={() => setNotification({ ...notification, show: false })}
         />
       )}
-      <div className="space-y-6">
-        {/* Back Arrow for mobile */}
-        <div className="flex items-center gap-2 mb-2 lg:hidden">
-          <button type="button" onClick={handleBack} className="flex items-center text-blue-600 hover:text-blue-800 focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 mr-1">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-semibold text-base">Back</span>
-          </button>
-        </div>
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-        {/* Analytics & Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Time Range Filters & Export */}
-          <div className="bg-white rounded-lg shadow p-6 md:col-span-2 mb-4 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex gap-2 items-center">
-              <label className="font-semibold">Start Date:</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="border rounded px-2 py-1" />
-              <label className="font-semibold ml-4">End Date:</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="border rounded px-2 py-1" />
-              <button className="ml-4 px-3 py-1 bg-blue-600 text-white rounded" onClick={() => { setStartDate(''); setEndDate(''); }}>Reset</button>
-            </div>
-            <div className="flex gap-2 items-center">
-              <CSVLink data={filteredLogs} filename={`sales-logs.csv`} className="px-3 py-1 bg-green-600 text-white rounded">Export CSV</CSVLink>
-            </div>
-          </div>
-          {/* Summary Section */}
-          <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
-            <h2 className="text-lg font-bold mb-4">Key Metrics</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-700">{bestDay.date || '-'}</div>
-                <div className="text-sm text-gray-600">Best Selling Day</div>
-                <div className="text-xs text-blue-500 mt-2">Sales Growth: {salesGrowth}%</div>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-700">{avgSales}</div>
-                <div className="text-sm text-gray-600">Avg Sales/Day</div>
-                <div className="text-xs text-green-500 mt-2">Turnover Rate: {turnoverRate}</div>
-              </div>
-              <div className="p-4 bg-yellow-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-yellow-700">${avgRevenue}</div>
-                <div className="text-sm text-gray-600">Avg Revenue/Day</div>
-                <div className="text-xs text-yellow-500 mt-2">Revenue Growth: {revenueGrowth}%</div>
-              </div>
-              <div className="p-4 bg-red-50 rounded-lg text-center">
-                <div className="text-lg font-bold text-red-700">{mostStocked.name || '-'}</div>
-                <div className="text-xs text-gray-600">Most Stocked: {mostStocked.stock || '-'}</div>
-                <div className="text-lg font-bold text-red-700 mt-2">{leastStocked.name || '-'}</div>
-                <div className="text-xs text-gray-600">Least Stocked: {leastStocked.stock || '-'}</div>
-                <div className="text-xs text-red-500 mt-2">Sell-Through Rate: {sellThroughRate}%</div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Sales Trends</h2>
-            <Line
-              data={salesChartData}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: { display: true },
-                  tooltip: { enabled: true }
-                },
-                onClick: (evt, elements) => {
-                  if (elements.length > 0) {
-                    const idx = elements[0].index;
-                    const date = salesChartData.labels[idx];
-                    setDrillProduct(date);
-                  }
-                }
-              }}
-            />
-            {drillProduct && (
-              <div className="mt-4 p-4 bg-gray-50 rounded">
-                <h3 className="font-bold mb-2">Details for {drillProduct}</h3>
-                <ul className="text-sm">
-                  {filteredLogs.filter(l => new Date(l.date).toISOString().slice(0, 10) === drillProduct).map((l, i) => (
-                    <li key={i}>{l.name} ({l.category}) - Qty: {l.quantity}, Revenue: ${l.total}, Type: {l.type}</li>
-                  ))}
-                </ul>
-                <button className="mt-2 px-3 py-1 bg-red-600 text-white rounded" onClick={() => setDrillProduct(null)}>Close</button>
-              </div>
-            )}
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Revenue Trends</h2>
-            <Line data={revenueChartData} options={{ responsive: true, plugins: { legend: { display: true } } }} />
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Category Distribution</h2>
-            <Pie data={categoryChartData} options={{ responsive: true, plugins: { legend: { display: true } } }} />
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Sales by Category</h2>
-            <Bar data={salesByCategoryData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-bold mb-4">Low Stock Breakdown</h2>
-            <Bar data={lowStockChartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-          </div>
-          <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
-            <h2 className="text-lg font-bold mb-4">Top Products</h2>
-            <Pie
-              data={topProductsChartData}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: true }, tooltip: { enabled: true } },
-                onClick: (evt, elements) => {
-                  if (elements.length > 0) {
-                    const idx = elements[0].index;
-                    const prod = topProductsChartData.labels[idx];
-                    setDrillProduct(prod);
-                  }
-                }
-              }}
-            />
-            {drillProduct && (
-              <div className="mt-4 p-4 bg-gray-50 rounded">
-                <h3 className="font-bold mb-2">Details for {drillProduct}</h3>
-                <ul className="text-sm">
-                  {filteredLogs.filter(l => l.name === drillProduct).map((l, i) => (
-                    <li key={i}>{l.date.slice(0,10)} - Qty: {l.quantity}, Revenue: ${l.total}, Type: {l.type}</li>
-                  ))}
-                </ul>
-                <button className="mt-2 px-3 py-1 bg-red-600 text-white rounded" onClick={() => setDrillProduct(null)}>Close</button>
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {/* ...existing code... */}
+
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard Overview</h1>
+          <p className="text-gray-600 mt-1">Welcome to your inventory management dashboard</p>
         </div>
 
-        {/* Recent Products */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          {/* ...existing code... */}
+        {/* Summary Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          {[
+            { title: "Total Products", value: summary.totalProducts, icon: "📦" },
+            { title: "Total Stock", value: summary.totalStock, icon: "📊" },
+            { title: "Inventory Value", value: `$${summary.totalValue}`, icon: "💰" },
+            { title: "Total Sales", value: summary.totalSales, icon: "🛒" },
+            { title: "Total Revenue", value: `$${summary.totalRevenue}`, icon: "💹" },
+            { title: "Total Restocked", value: summary.totalRestocked, icon: "🔄" },
+          ].map((stat, index) => (
+            <div 
+              key={index} 
+              className={`rounded-xl shadow-sm p-5 ${statColors[index].bg} ${statColors[index].border} border`}
+            >
+              <div className="flex items-center">
+                <div className="text-2xl mr-3">{stat.icon}</div>
+                <div>
+                  <div className="text-2xl font-bold mb-1">{stat.value}</div>
+                  <div className="text-sm font-medium text-gray-600">{stat.title}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Sales by Category Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-lg text-gray-800">Sales by Category</h3>
+              <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md text-sm">Last 30 days</span>
+            </div>
+            <div className="space-y-4">
+              {Object.entries(salesByCategory).map(([cat, qty]) => (
+                <div key={cat} className="flex items-center justify-between">
+                  <span className="text-gray-700 font-medium">{cat}</span>
+                  <span className="font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full text-sm">
+                    {qty} units
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stock Value by Category Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-lg text-gray-800">Stock Value by Category</h3>
+              <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md text-sm">Current</span>
+            </div>
+            <div className="space-y-4">
+              {Object.entries(stockValueByCategory).map(([cat, value]) => (
+                <div key={cat} className="flex items-center justify-between">
+                  <span className="text-gray-700 font-medium">{cat}</span>
+                  <span className="font-semibold text-green-700 bg-green-50 px-3 py-1 rounded-full text-sm">
+                    ${value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Low Stock Items Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-lg text-gray-800">Low Stock Alert</h3>
+              <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md text-sm">
+                {lowStockItems.length} items
+              </span>
+            </div>
+            <div className="space-y-4">
+              {lowStockItems.map((item) => (
+                <div key={item.name + item.category} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <div>
+                    <div className="font-medium text-gray-800">{item.name}</div>
+                    <div className="text-sm text-gray-600">{item.category}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-red-600">Stock: {item.stock}</div>
+                    <div className="text-sm text-gray-600">Price: ${item.price}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Selling Products Card */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-lg text-gray-800">Top Selling Products</h3>
+              <span className="text-orange-600 bg-orange-50 px-2 py-1 rounded-md text-sm">Best performers</span>
+            </div>
+            <div className="space-y-4">
+              {topSelling.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <span className="text-orange-600 bg-orange-100 h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <div className="font-medium text-gray-800">{item.name}</div>
+                      <div className="text-sm text-gray-600">Sold: {item.quantity}</div>
+                    </div>
+                  </div>
+                  <div className="font-semibold text-green-600">${item.revenue}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sales Trend Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold text-lg text-gray-800">Sales Trend (Last 7 Days)</h3>
+            <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md text-sm">Daily</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            {salesTrend.map((day) => (
+              <div key={day.date} className="bg-indigo-50 p-3 rounded-lg text-center">
+                <div className="text-xs text-indigo-600 font-medium mb-1">{day.date}</div>
+                <div className="text-sm font-bold text-indigo-800 mb-1">{day.sales} sales</div>
+                <div className="text-xs text-indigo-600">${day.revenue}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
