@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { ClipLoader } from "react-spinners";
 import Notification from "../components/Notification";
 
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,8 +20,8 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const [statsRes, inventoryRes] = await Promise.all([
-          fetch("https://inventory-backend-gpon.onrender.com/api/dashboard/stats"),
-          fetch("https://inventory-backend-gpon.onrender.com/api/dashboard/inventory-status"),
+          fetch(`${API_URL}/api/dashboard/stats`),
+          fetch(`${API_URL}/api/dashboard/inventory-status`),
         ]);
 
         const [stats, inventory] = await Promise.all([

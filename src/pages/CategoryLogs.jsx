@@ -8,6 +8,8 @@ const categoryMap = {
   dresses: "Dresses"
 };
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function CategoryLogs() {
   const { category, id } = useParams();
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ function CategoryLogs() {
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${category}/${id}`);
+        const res = await fetch(`${API_URL}/api/${category}/${id}`);
         if (!res.ok) throw new Error("Product not found");
         const data = await res.json();
         setProduct(data);
@@ -31,7 +33,7 @@ function CategoryLogs() {
     
     async function fetchLogs() {
       try {
-        const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/sales/logs?productId=${id}`);
+        const res = await fetch(`${API_URL}/api/sales/logs?productId=${id}`);
         if (!res.ok) throw new Error("Logs not found");
         const data = await res.json();
         setLogs(data);

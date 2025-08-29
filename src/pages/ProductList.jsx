@@ -1,10 +1,10 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import Notification from '../components/Notification';
 import Modal from 'react-modal';
 import { ClipLoader } from 'react-spinners';
+import { FaTrash } from 'react-icons/fa';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function ProductList() {
   // Back navigation for mobile
@@ -25,9 +25,9 @@ export default function ProductList() {
     async function fetchAll() {
       setLoading(true);
       const endpoints = [
-        { url: `https://inventory-backend-gpon.onrender.com/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
-        { url: `https://inventory-backend-gpon.onrender.com/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
-        { url: `https://inventory-backend-gpon.onrender.com/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
+        { url: `${API_URL}/api/shoes?page=${page}&limit=${limit}`, category: 'Shoes' },
+        { url: `${API_URL}/api/bags?page=${page}&limit=${limit}`, category: 'Bags' },
+        { url: `${API_URL}/api/dresses?page=${page}&limit=${limit}`, category: 'Dresses' },
       ];
       let all = [];
       let total = 0;
@@ -74,7 +74,7 @@ export default function ProductList() {
       return;
     }
     try {
-      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${product._id}/deduct`, {
+      const res = await fetch(`${API_URL}/api/${endpoint}/${product._id}/deduct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity }),
@@ -123,7 +123,7 @@ export default function ProductList() {
   else return setNotification({ show: true, message: 'Unknown category', type: 'error' });
     const payload = { ...editForm };
     try {
-      const res = await fetch(`https://inventory-backend-gpon.onrender.com/api/${endpoint}/${editProduct._id}`, {
+      const res = await fetch(`${API_URL}/api/${endpoint}/${editProduct._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -135,6 +135,69 @@ export default function ProductList() {
         setNotification({ show: true, message: 'Product updated!', type: 'success' });
       } else {
         setNotification({ show: true, message: 'Failed to update product.', type: 'error' });
+      }
+    } catch (err) {
+      setNotification({ show: true, message: 'Error: ' + err.message, type: 'error' });
+    }
+  };
+
+  // New handlers for stock management
+  const handleAddStock = async (product) => {
+    const quantityStr = prompt(`How many units to add to ${product.name}?`);
+    const quantity = parseInt(quantityStr, 10);
+    if (!quantity || quantity <= 0) {
+      setNotification({ show: true, message: 'Enter a valid quantity', type: 'error' });
+      return;
+    }
+    let endpoint = '';
+    if (product.category === 'Shoes') endpoint = 'shoes';
+    else if (product.category === 'Bags') endpoint = 'bags';
+    else if (product.category === 'Dresses') endpoint = 'dresses';
+    else {
+      setNotification({ show: true, message: 'Unknown category', type: 'error' });
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/${endpoint}/${product._id}/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProducts((prev) => prev.map((p) => p._id === product._id ? { ...p, stock: updated.stock } : p));
+        setNotification({ show: true, message: 'Stock added successfully!', type: 'success' });
+      } else {
+        const err = await res.json();
+        setNotification({ show: true, message: 'Error: ' + (err.error || 'Failed to add stock'), type: 'error' });
+      }
+    } catch (err) {
+      setNotification({ show: true, message: 'Error: ' + err.message, type: 'error' });
+    }
+  };
+
+  const handleRemoveStock = async (product) => {
+    const confirm = window.confirm(`Are you sure you want to remove ${product.name} from the list?`);
+    if (!confirm) return;
+    let endpoint = '';
+    if (product.category === 'Shoes') endpoint = 'shoes';
+    else if (product.category === 'Bags') endpoint = 'bags';
+    else if (product.category === 'Dresses') endpoint = 'dresses';
+    else {
+      setNotification({ show: true, message: 'Unknown category', type: 'error' });
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/${endpoint}/${product._id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        setProducts((prev) => prev.filter((p) => p._id !== product._id));
+        setNotification({ show: true, message: 'Product removed successfully!', type: 'success' });
+      } else {
+        const err = await res.json();
+        setNotification({ show: true, message: 'Error: ' + (err.error || 'Failed to remove product'), type: 'error' });
       }
     } catch (err) {
       setNotification({ show: true, message: 'Error: ' + err.message, type: 'error' });
@@ -184,39 +247,72 @@ export default function ProductList() {
         <div className="flex justify-center items-center h-40"><ClipLoader color="#2563eb" size={48} /></div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
             {filteredProducts.map((product) => (
               <div
                 key={product._id}
-                className="bg-white p-5 rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 cursor-pointer flex flex-col items-center group min-h-[420px]"
+                className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 cursor-pointer flex flex-row group p-0 overflow-hidden border border-blue-100 min-w-[340px] max-w-2xl w-full mb-6"
+                
+                onClick={() => handleViewLogs(product._id)}
               >
-                <div className="w-full flex justify-center mb-4">
+                {/* Image section */}
+                <div className="flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 h-full w-40">
                   <img
-                    src={product.image_url} alt={product.name}
-                    className="h-56 w-56 object-cover rounded-xl border-2 border-blue-100 group-hover:scale-105 transition-transform duration-300 bg-gray-50"
-                    style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
+                    src={product.image_url}
+                    alt={product.name}
+                    className="object-cover rounded-xl border-2 border-blue-200 group-hover:scale-105 transition-transform duration-300 bg-gray-50"
+                    style={{
+                      height: "140px",
+                      width: "140px",
+                      boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+                    }}
                   />
                 </div>
-                <div className="font-bold text-lg mb-1 text-gray-800">{product.name}</div>
-                <div className="text-sm text-gray-600 mb-1">Category: <span className="font-semibold">{product.category}</span></div>
-                <div className="text-sm text-gray-600 mb-1">Size: <span className="font-semibold">{product.size}</span></div>
-                <div className="text-sm text-gray-600 mb-1">Color: <span className="font-semibold">{product.color}</span></div>
-                <div className="text-sm text-gray-600 mb-1">Stock: <span className="font-semibold">{product.stock}</span></div>
-                <div className="text-sm text-gray-600 mb-1">Price: <span className="font-semibold">${product.price}</span></div>
-                <div className="text-xs text-gray-500 mb-2 text-center">{product.description}</div>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition"
-                    onClick={() => handleDeductStock(product)}
-                  >
-                    Deduct Stock
-                  </button>
-                  <button
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-yellow-600 transition"
-                    onClick={() => handleEditClick(product)}
-                  >
-                    Edit
-                  </button>
+                {/* Details section */}
+                <div className="flex flex-col justify-between px-4 py-3 flex-1">
+                  <div>
+                    <div className="font-bold text-lg mb-1 text-blue-900 truncate">
+                      {product.name}
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-1">
+                      <span>Category: <span className="font-semibold">{product.category}</span></span>
+                      <span>Color: <span className="font-semibold">{product.color}</span></span>
+                      <span>Stock: <span className="font-semibold">{product.stock}</span></span>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-1">
+                      Price: <span className="font-semibold">${product.price}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2 text-left line-clamp-2">
+                      {product.description}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-center justify-end">
+                    <button
+                      className="bg-green-600 text-white px-3 py-1 rounded-xl font-semibold shadow hover:bg-green-700 transition text-xs"
+                      onClick={(e) => { e.stopPropagation(); handleAddStock(product); }}
+                    >
+                      Add Stock
+                    </button>
+                    <button
+                      className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-3 py-1 rounded-xl font-semibold shadow hover:from-blue-600 hover:to-blue-800 transition text-xs"
+                      onClick={(e) => { e.stopPropagation(); handleRemoveStock(product); }}
+                    >
+                      Remove
+                    </button>
+                    <button
+                      className="bg-yellow-500 text-white px-3 py-1 rounded-xl font-semibold shadow hover:bg-yellow-600 transition text-xs"
+                      onClick={(e) => { e.stopPropagation(); handleEditProduct(product); }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-500 hover:text-red-700 p-2 rounded-full"
+                      title="Delete"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product._id); }}
+                    >
+                      <FaTrash size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

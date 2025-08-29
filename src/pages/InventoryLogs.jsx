@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function InventoryLogs() {
   const handleBack = () => window.history.back();
   const [logs, setLogs] = useState([]);
@@ -18,7 +20,7 @@ export default function InventoryLogs() {
 
   const fetchLogs = () => {
     setLoading(true);
-    let url = 'https://inventory-backend-gpon.onrender.com/api/sales/logs';
+    let url = `${API_URL}/api/sales/logs`;
     const params = [];
     if (startDate) params.push(`start=${startDate}`);
     if (endDate) params.push(`end=${endDate}`);
